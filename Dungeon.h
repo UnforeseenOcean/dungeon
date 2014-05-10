@@ -34,6 +34,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <set>
 
 using namespace std;
 using namespace sf;
@@ -49,30 +50,57 @@ class DungeonTile {
 
 		virtual ~DungeonTile();
 
-		const virtual sf::Color getDrawColor() = 0;
-
-		const virtual void draw(RenderTarget &target, const Vector2i &origin, int size);
+		virtual sf::Color getDrawColor() const = 0;
+		virtual void draw(RenderTarget &target, const Vector2i &origin, int size) const;
+		virtual int getID() const = 0;
 };
 
 class TileAir: public DungeonTile {
 	public:
+		static const int ID;
 		TileAir(int x, int y)
 				: DungeonTile(x, y) {
 		}
 
-		const virtual sf::Color getDrawColor() {
+		virtual sf::Color getDrawColor() const {
 			return sf::Color::Black;
+		}
+
+		virtual int getID() const {
+			return ID;
 		}
 };
 
 class TileWall: public DungeonTile {
 	public:
+		static const int ID;
 		TileWall(int x, int y)
 				: DungeonTile(x, y) {
 		}
 
-		const virtual sf::Color getDrawColor(){
-			return sf::Color(128, 128, 128, 255);
+		virtual sf::Color getDrawColor() const {
+			return sf::Color(153, 117, 0, 255);
+		}
+
+		virtual int getID() const {
+			return ID;
+		}
+};
+
+class TileFloor: public DungeonTile {
+	public:
+		static const int ID;
+
+		TileFloor(int x, int y)
+				: DungeonTile(x, y) {
+		}
+
+		virtual sf::Color getDrawColor() const {
+			return sf::Color(201, 175, 89, 255);
+		}
+
+		virtual int getID() const {
+			return ID;
 		}
 };
 
@@ -99,4 +127,11 @@ class Dungeon {
 	private:
 		vector<vector<DungeonTile*> > tiles;
 		DungeonSettings settings;
+
+		bool createRoom(int ex, int ey, int sx, int sy, int w, int h);
+
+		void setTileAt(int x, int y, DungeonTile* tile);
+
+		int getTileIDat(int x, int y) const;
+		bool tileAssert(int sx, int sy, int ex, int ey, set<int> &ls, bool only) const;
 };

@@ -32,6 +32,11 @@
 
 #include "Dungeon.h"
 #include <iostream>
+#include <set>
+
+const int TileAir::ID = 0;
+const int TileWall::ID = 1;
+const int TileFloor::ID = 2;
 
 void Dungeon::create(DungeonSettings settings, bool step) {
 	vector<vector<DungeonTile*> >::iterator it1;
@@ -53,18 +58,47 @@ void Dungeon::create(DungeonSettings settings, bool step) {
 	for (int i = 0; i < settings.sizeY; i++) {
 		tiles.push_back(vector<DungeonTile*>());
 		for (int j = 0; j < settings.sizeX; j++) {
-			if(rand()%2){
-				tiles.back().push_back(new TileWall(j, i));
-			}else{
-				tiles.back().push_back(new TileAir(j, i));
+			tiles[i].push_back(0);
+		}
+	}
+
+	int rooms = 0;
+
+	for (int i = 0; rooms < 10; i++) {
+		cout << "Room spawn try: " << i << endl;
+		int sx = rand() % settings.sizeX;
+		int sy = rand() % settings.sizeY;
+		int w = rand() % 10 + 5;
+		int h = rand() % 10 + 5;
+		int ex, ey;
+		if (rand() % 2) {
+			if (rand() % 2) {
+				ex = sx;
+			} else {
+				ex = sx + w - 1;
 			}
+			ey = sy + h / 2;
+		} else {
+			if (rand() % 2) {
+				ey = sy;
+			} else {
+				ey = sy + h - 1;
+			}
+			ex = sx + w / 2;
+		}
+		if (createRoom(ex, ey, sx, sy, w, h)) {
+			cout << "Success" << endl;
+			rooms++;
+		} else {
+			cout << "Failed" << endl;
 		}
 	}
 }
 
 void Dungeon::draw(RenderTarget& target) {
+	int margin = 5;
 
-	Vector2i size(target.getSize().x - 20, target.getSize().y - 20);
+	Vector2i size(target.getSize().x - 2 * margin, target.getSize().y - 2 * margin);
 
 	int sizeX = size.x / settings.sizeX;
 	int sizeY = size.y / settings.sizeY;
@@ -75,8 +109,8 @@ void Dungeon::draw(RenderTarget& target) {
 
 	int minSize = min(sizeX, sizeY);
 
-	int px = (size.x - settings.sizeX * minSize) / 2 + 10;
-	int py = (size.y - settings.sizeY * minSize) / 2 + 10;
+	int px = (size.x - settings.sizeX * minSize) / 2 + margin;
+	int py = (size.y - settings.sizeY * minSize) / 2 + margin;
 
 	Vector2i origin(px, py);
 
@@ -97,7 +131,80 @@ bool Dungeon::step() {
 	return false;
 }
 
-const void DungeonTile::draw(RenderTarget &target, const Vector2i &origin, int size) {
+int Dungeon::getTileIDat(int x, int y) const {
+	if (((unsigned) y) < tiles.size()) {
+		if (((unsigned) x) < tiles[y].size()) {
+			if (tiles[y][x] == 0) {
+				return 0;
+			} else {
+				return tiles[y][x]->getID();
+			}
+		}
+	}
+	return -2;
+}
+
+bool Dungeon::tileAssert(int sx, int sy, int w, int h, set<int> &ls, bool only) const {
+	for (int i = sy; i < sy + h; i++) {
+		for (int j = sx; j <= sx + w; j++) {
+			int tile = getTileIDat(j, i);
+			if (ls.find(tile) == ls.end()) {
+				if (only) {
+					return false;
+				}
+			} else {
+				if (!only) {
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+bool Dungeon::createRoom(int ex, int ey, int sx, int sy, int w, int h) {
+	set<int> allowed;
+	allowed.insert(TileAir::ID);
+	allowed.insert(TileWall::ID);
+
+	if (tileAssert(sx, sy, w, h, allowed, true)) {
+		for (int i = 0; i < w; i++) {
+			int bx = sx + i;
+			for (int j = 0; j < h; j++) {
+				int by = sy + j;
+				if (bx == ex && by == ey) {
+					cout << "Skipping door tile! ";
+					continue;
+				}
+				if (i == 0 || i == (w - 1) || j == 0 || j == (h - 1)) {
+					setTileAt(bx, by, new TileWall(bx, by));
+				} else {
+					setTileAt(bx, by, new TileFloor(bx, by));
+				}
+			}
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void Dungeon::setTileAt(int x, int y, DungeonTile* tile) {
+	if (((unsigned) y) >= tiles.size()) {
+		return;
+	}
+	if (((unsigned) x) >= tiles[y].size()) {
+		return;
+	}
+	if (tiles[y][x] != 0) {
+		delete tiles[y][x];
+	}
+
+	tiles[y][x] = tile;
+}
+
+void DungeonTile::draw(RenderTarget &target, const Vector2i &origin, int size) const {
 	RectangleShape rect(Vector2f(size, size));
 	rect.setFillColor(getDrawColor());
 

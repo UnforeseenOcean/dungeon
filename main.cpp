@@ -37,6 +37,7 @@
 using namespace sf;
 
 int main(int argc, char **argv) {
+	srand(time(0));
 	Dungeon d;
 
 	VideoMode vm(800, 800);
@@ -44,8 +45,8 @@ int main(int argc, char **argv) {
 	RenderWindow window(vm, "Dungeon", Style::Resize | Style::Titlebar | Style::Close);
 
 	Dungeon::DungeonSettings settings;
-	settings.sizeX = 10;
-	settings.sizeY = 10;
+	settings.sizeX = 50;
+	settings.sizeY = 50;
 
 	bool running = true;
 	bool stepping = false;
